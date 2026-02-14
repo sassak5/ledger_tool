@@ -1,0 +1,59 @@
+# rules/bank_format_aichibank.yml
+version: 1
+format_id: aichibank_table_v1
+source_kind: bank_statement
+
+encoding:
+  expected: ["utf-8", "cp932", "shift_jis"]
+
+table:
+  header_row: 1
+  allow_extra_columns: true
+  trim_whitespace: true
+
+header_aliases:
+  date: ["年月日", "日付"]
+  amount_out: ["お支払金額", "支払金額", "支払い金額"]
+  amount_in: ["お預り金額（円）", "お預り金額(円)", "お預り金額", "預かり金額"]
+  description: ["内容", "摘要", "取引内容"]
+  balance: ["差引残高", "残高"]
+  memo: ["メモ", "備考"]
+
+parsing:
+  date:
+    formats: ["%Y/%m/%d", "%Y-%m-%d", "%Y.%m.%d"]
+    timezone: "Asia/Tokyo"
+  number:
+    thousands_sep: [","]      # 12,742 など
+    currency_symbols: ["¥", "円"]
+    empty_as_zero: true
+    allow_parentheses_negative: true
+
+normalize:
+  # まずは共通スキーマへ
+  output_schema: normalized_transaction_v1
+  fields:
+    tx_date: { from: date }
+    description: { from: description }
+    memo: { from: memo }
+    amount_out: { from: amount_out }   # 支払=プラス（正の数）で格納
+    amount_in:  { from: amount_in }    # 預り=プラス（正の数）で格納
+    balance: { from: balance }
+
+rules:
+  # 入出金判定はPython側で実装 (MVP)
+  direction: "amount_based"
+
+validations:
+  - id: both_in_out_positive
+    level: warn
+    when: "amount_out > 0 and amount_in > 0"
+    message: "支払と預りが同時に入っています（要確認）"
+  - id: both_in_out_zero
+    level: warn
+    when: "amount_out == 0 and amount_in == 0"
+    message: "金額が両方0です（要確認）"
+  - id: date_required
+    level: error
+    when: "tx_date is null"
+    message: "日付が読めません"

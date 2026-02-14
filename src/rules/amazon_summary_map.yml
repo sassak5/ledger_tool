@@ -1,0 +1,86 @@
+# rules/amazon_summary_map.yml
+version: 1
+source: amazon_settlement_report
+key:
+  # 同一精算の識別（ヘッダ行にも settlement-id / deposit-date / total-amount があります）
+  settlement_id: settlement-id
+  deposit_date: deposit-date
+  total_amount: total-amount
+
+# スクショの「サマリ表示」を再現するための集計定義
+# - match: amount-type + amount-description で行を拾う
+# - normalize:
+#   - ABS: 絶対値で加算（費用がマイナスで来てもプラス集計にしたい時）
+#   - RAW: そのまま加算（符号を保持）
+#   - NEGATE: 符号反転して加算（マイナスで来るものをプラスとして扱う）
+summary_buckets:
+
+  # --- 売上（プラス側） ---
+  商品代金:
+    normalize: RAW
+    include:
+      - { amount_type: "ItemPrice", amount_description: "Principal" }
+
+  配送料:
+    normalize: RAW
+    include:
+      - { amount_type: "ItemPrice", amount_description: "Shipping" }
+
+  税金:
+    # 税金は ItemPrice/Tax + ItemPrice/ShippingTax - Promotion/TaxDiscount のように
+    # 複数の行に分散するので式で持たせます
+    normalize: RAW
+    formula:
+      add:
+        - { amount_type: "ItemPrice", amount_description: "Tax" }
+        - { amount_type: "ItemPrice", amount_description: "ShippingTax" }
+      subtract:
+        - { amount_type: "Promotion", amount_description: "TaxDiscount" }
+
+  # スクショで「FBA手数料」がプラスに出るケース（ストレージ等の調整/リバーサルが相殺でプラスになる）
+  FBA手数料_プラス:
+    normalize: RAW
+    include:
+      - { amount_type: "other-transaction", amount_description: "Storage Fee" }
+
+  # --- 支出（マイナス側） ---
+  プロモーション割引額:
+    normalize: RAW
+    include:
+      - { amount_type: "Promotion", amount_description: "Shipping" }
+
+  # スクショで「FBA手数料」がマイナスに出るケース（倉庫更新・FBA納品輸送など）
+  FBA手数料_マイナス:
+    normalize: RAW
+    include:
+      - { amount_type: "other-transaction", amount_description: "StorageRenewalBilling" }
+      - { amount_type: "other-transaction", amount_description: "FBAInboundTransportationFee" }
+
+  # スクショの「Amazon手数料」相当（販売手数料/成約料/出荷代行/配送のチャージバック等が混ざる）
+  Amazon手数料:
+    normalize: RAW
+    include:
+      - { amount_type: "ItemFees", amount_description: "Commission" }
+      - { amount_type: "ItemFees", amount_description: "VariableClosingFee" }
+      - { amount_type: "ItemFees", amount_description: "FBAPerUnitFulfillmentFee" }
+      - { amount_type: "ItemFees", amount_description: "ShippingChargeback" }
+
+# 仕訳（一般的な帳簿）に落とす時のデフォルト科目（後で上書き前提のたたき台）
+# ※スマート取引取り込みに寄せる前の「ledger_draft.csv」生成用
+ledger_defaults:
+  counterparty: "Amazon.co.jp"
+  receivable_account: "売掛金"   # まずは売掛金/未収入金で立てる（銀行突合が未決でも成立させる）
+  revenue_account: "売上高"
+  tax_account: "仮受消費税"
+  fee_account: "支払手数料"
+  fba_fee_account: "支払手数料"  # 必要なら「発送代行手数料」などに分ける
+
+# 検証ルール（最低限）
+validations:
+  # settlementヘッダ行で total-amount を持っている（例：69773.00）:contentReference[oaicite:1]{index=1}
+  require_header_row: true
+  require_fields_in_row:
+    - settlement-id
+    - amount-type
+    - amount-description
+    - amount

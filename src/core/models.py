@@ -114,7 +114,7 @@ class LedgerDraft:
 
 @dataclass
 class ValidationError:
-    """バリデーションエラー/警告（処理中の問題を1件表す）。
+    """バリデーションエラー/警告（最終的にGUIやcsvにて出力）。
 
     - row_id: 問題の紐付け先（取引IDやファイルパス等）として追跡に使う。
     - level: 重大度（error/warn）として除外判定や表示色分けに使う。
