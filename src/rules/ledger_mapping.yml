@@ -1,0 +1,86 @@
+# rules/ledger_mapping.yml
+# 仕訳候補（LedgerDraft）生成の「暫定ルール」をYAMLで外出しするための設定
+# - 銀行入金のデフォルト（売上高）
+# - 摘要キーワードでの例外（ATM入金/オリソク → 事業主借り）
+# - 銀行出金のキーワード→経費科目推定
+# - Amazonバケット→科目割当
+
+version: 1
+kind: ledger_mapping
+
+text:
+  # 摘要の表記ゆれ（半角カナ等）を吸収するための正規化
+  # - NFKC: 半角カナ→全角などを統一
+  normalize: NFKC
+
+description:
+  # LedgerDraft.description の最大長（超えた分は切り捨て）
+  max_length: 100
+
+bank:
+  # 基本タグ（全銀行仕訳に付与）
+  base_tags: ["bank"]
+
+  # 摘要キーワード → 追加タグ（マッチしたもの全て付与）
+  tag_keywords:
+    - contains: ["手数料"]
+      tag: "fee"
+    - contains: ["振替"]
+      tag: "transfer"
+
+  inflow:
+    # 入金のデフォルト仕訳（MVP）
+    debit_account: "普通預金"
+    credit_account: "売上高"
+
+    # 入金でも売上ではないものを摘要で例外処理
+    overrides:
+      - contains: ["ATMニユウキン", "ATM二ユウキン", "オリソク"]
+        credit_account: "事業主借り"
+
+  outflow:
+    credit_account: "普通預金"
+    unknown_debit_account: "未分類"
+
+    # 摘要キーワード→借方科目（最初にマッチしたものを採用）
+    keyword_accounts:
+      - contains: ["振込手数料"]
+        debit_account: "支払手数料"
+      - contains: ["手数料"]
+        debit_account: "支払手数料"
+      - contains: ["利息"]
+        debit_account: "支払利息"
+      - contains: ["家賃"]
+        debit_account: "地代家賃"
+      - contains: ["水道", "電気", "ガス"]
+        debit_account: "水道光熱費"
+      - contains: ["通信"]
+        debit_account: "通信費"
+      - contains: ["保険"]
+        debit_account: "保険料"
+
+amazon:
+  # デフォルト取引先
+  default_partner: "Amazon.co.jp"
+
+  # 基本タグ（全Amazon仕訳に付与）
+  base_tags: ["amazon"]
+
+  # バケット名キーワード → 追加タグ
+  tag_keywords:
+    - contains: ["手数料"]
+      tag: "fee"
+
+  # Amazonバケット名 → [借方科目, 貸方科目]
+  bucket_accounts:
+    商品代金: ["売掛金", "売上高"]
+    配送料: ["売掛金", "売上高"]
+    税金: ["売掛金", "仮受消費税"]
+    Amazon手数料: ["支払手数料", "売掛金"]
+    FBA手数料_マイナス: ["支払手数料", "売掛金"]
+    FBA手数料_プラス: ["売掛金", "支払手数料"]
+    プロモーション割引額: ["売上値引", "売掛金"]
+
+  # 未マッピング時のフォールバック
+  unknown_debit_account: "未分類"
+  unknown_credit_account: "売掛金"
