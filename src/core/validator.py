@@ -1,6 +1,14 @@
-"""バリデーション — NormalizedTransaction を検証し有効行とエラーに分離する
+"""
+ドキュメント最終更新: 2026-02-15
 
-検証ルールはコードで固定。YAMLは「変換ルール」の唯一の真実。
+このモジュールは、パイプライン全体の中で「正規化された取引が、必須項目や整合性ルールを
+満たしているかチェック」し、問題のある行を次工程（仕訳生成）へ渡さないための品質ゲート。
+
+- 本モジュール（validator）は、必須フィールド（date等）の存在や、入出金の整合性をチェックし、
+  通過した取引（valid_txns）と問題行（ValidationError）に分離する。
+注意:
+    検証ルールは現状コードで固定（必須項目・整合チェック程度）。
+    YAMLの validations セクションは将来拡張の余地として定義されているが、まだ本格活用されていない。
 """
 
 from __future__ import annotations
@@ -24,6 +32,9 @@ def validate(
     error レベル → 有効行リストから除外
     warn レベル → 有効行リストに残る
     """
+
+    # TODO: validatorは必須日付・入出金の簡易整合くらいで、YAMLの validations をほぼ使っていません
+
     valid: list[NormalizedTransaction] = []
     errors: list[ValidationError] = []
 

@@ -1,4 +1,22 @@
-"""フォーマット検出 — ファイルのエンコーディング判定 + ヘッダ行テンプレートマッチング"""
+"""
+ドキュメント最終更新: 2026-02-15
+
+このモジュールは、GUIでユーザーが選ぶ入力ファイルが「銀行CSV」「Amazon精算TSV」など複数形式に
+渡るので、まずフォーマットを検出してから適切なパーサやルールを適用するための「フォーマット検出器」です。
+
+具体的には以下を決定する。
+- 適用すべきルールYAML（列名ゆれの吸収定義など）
+- 使うべきパーサ（RawRecord 生成ロジック）
+
+また、実務上は同じCSV/TSVでも文字コード（UTF-8 / CP932 等）が混在しやすく、
+文字化けしたままヘッダ解釈やテンプレマッチを行うと誤判定・誤パースにつながる。
+そのため本モジュールは、まずエンコーディングを推定して正しくデコードし、
+先頭行（ヘッダ）の列名を元にテンプレートマッチングを行っている。
+
+システム全体での立ち位置:
+    GUIの「変換（帳簿作成）」実行 → pipeline.run → detector.detect → DetectionResult
+    → registry.get(source_kind) でパーサ解決 → parse/normalize… と後段へ渡す。
+"""
 
 from __future__ import annotations
 
@@ -12,6 +30,7 @@ from src.core.models import (
     EncodingDetectionError,
     FormatNotMatchedError,
 )
+# TODO: ヘッダ列名のマッチ数でフォーマット判定するので、列名や表記ゆれがあると別YAMLが当たる可能性があります
 
 # Amazon TSV の必須列 (これがあれば Amazon と判定)
 _AMAZON_REQUIRED_COLUMNS = {"settlement-id", "amount-type", "amount-description", "amount"}

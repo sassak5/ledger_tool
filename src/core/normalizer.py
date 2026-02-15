@@ -1,8 +1,22 @@
-"""正規化変換 — RawRecord を NormalizedTransaction に変換する
+"""
+ドキュメント最終更新: 2026-02-15
 
-型変換 (日付パース・金額変換) はここで一元管理する。
-source_kind に応じた変換ロジックで RawRecord → NormalizedTransaction を生成し、
-正規化以降はソース非依存で処理できるようにする。
+このモジュールは、パイプライン全体の中で「入力ソースごとにバラバラなレコード表現」を、
+後段が共通に扱える `NormalizedTransaction` へ揃える役割を担う。(メイン関数はnormalize)
+
+システム全体での立ち位置（上流→下流）:
+    detector → parser → normalizer → validator → ledger_generator → exporter
+
+- 上流（parser）は、CSV/TSV 等を読み取り `RawRecord`（fields が文字列中心）を生成する。
+- 本モジュール（normalizer）は、日付パース・金額数値化・空白圧縮・入出金方向の統一などの
+  「型変換/表現統一」をここで一元管理し、`NormalizedTransaction` を生成する。
+- 下流（validator / ledger_generator）は、ソース依存の差を意識せずに検証や仕訳生成を行える。
+
+GUI操作から見た役割:
+    GUIの「変換（帳簿作成）」実行 → `src/core/pipeline.py` が処理を統括 →
+    パース後に本モジュールが呼ばれ、仕訳確認タブに表示される候補（LedgerDraft）の“元データ”
+    となる `NormalizedTransaction` を作る工程。
+
 """
 
 from __future__ import annotations

@@ -32,6 +32,8 @@ class RawRecord:
     - format_id: フォーマットID（どのテンプレ/定義に合致したか）の識別に使う。
     - row_number: 元ファイル上の行番号（エラー表示や追跡）に使う。
     - fields: パース済みフィールド（主に文字列のまま）を正規化処理へ渡す。
+        - 値は原則として文字列（または空文字）で、日付/金額の型変換は normalizer が担当する。
+        - キーは「正規化で使う標準キー」へ寄せられる（列名ゆれ吸収は bank の header_aliases 等）。
     - raw_line: 元行データを保持し、デバッグ/エラー出力の根拠として使う。
     """
     source_kind: str            # "bank_statement" / "amazon_settlement_report"
@@ -45,8 +47,13 @@ class RawRecord:
 class DetectionResult:
     """detector が返すフォーマット検出結果。
 
+    システム全体での立ち位置:
+    GUIの「変換（帳簿作成）」実行 → pipeline.run → detector.detect の結果として返され、
+    後続の「どのパーサで読むか」「どのルールYAMLを適用するか」を決めるために使われる。
+
     - format_id: 合致したフォーマットID（ログ/集計や追跡）に使う。
     - source_kind: ソース種別（どのパーサを使うか）を決めるキーに使う。
+        - 代表例: "bank_statement" / "amazon_settlement_report"（将来拡張で増える想定）。
     - encoding: 入力ファイルを読む文字コード指定としてパーサへ渡す。
     - config_path: 適用するルールYAMLのパス（設定ロードと再現性）に使う。
     """

@@ -44,16 +44,14 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from pathlib import Path
-from typing import Any
 
 from src.core import detector, normalizer, validator
 from src.core import ledger_generator, exporter
-import src.core.parsers  # noqa: F401 — パーサをレジストリに登録
+from src.core.parsers import register_parsers
 from src.core.models import (
     DetectionError,
     DetectionResult,
-     PipelineResult,
+    PipelineResult,
     ProcessingSummary,
     RawRecord,
     SourceFileInfo,
@@ -85,14 +83,17 @@ def run(
     all_raw_records: list[RawRecord] = []
     source_files: list[SourceFileInfo] = []
 
+    # パーサ登録（import副作用ではなく明示実行）
+    register_parsers()
+
     # --- Step 0: ルール読み込み ---
     rule_configs = loader.load_all_rules(rules_dir)
 
     # --- Step 1 & 2: ファイルごとに検出 → パース ---
-    for fpath in file_paths:
+    for fpath in file_paths: # TODO: 1件読み込んで帳票出力なのにfor?
         file_records: list[RawRecord] = []
 
-        # 検出
+        # フォーマット検出
         try:
             result: DetectionResult = detector.detect(fpath, rule_configs)
         except DetectionError as e:
@@ -125,7 +126,8 @@ def run(
             ))
             continue
 
-        all_raw_records.extend(file_records)# 
+        # パース成功したファイルのレコードを全体リストに追加
+        all_raw_records.extend(file_records)
 
         # ファイル単位のエラー集計 (正規化後に更新)
         source_files.append(SourceFileInfo(

@@ -162,7 +162,7 @@ def _generate_amazon_ledger(
 def generate(
     transactions: list[NormalizedTransaction],
 ) -> tuple[list[LedgerDraft], list[ValidationError]]:
-    """有効な NormalizedTransaction から LedgerDraft を生成する"""
+    """validator.pyで行検査した有効な NormalizedTransaction から LedgerDraft を生成する"""
     drafts: list[LedgerDraft] = []
     all_errors: list[ValidationError] = []
 
