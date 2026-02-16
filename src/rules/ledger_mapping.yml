@@ -36,7 +36,7 @@ bank:
     # 入金でも売上ではないものを摘要で例外処理
     overrides:
       - contains: ["ATMニユウキン", "ATM二ユウキン", "オリソク"]
-        credit_account: "事業主借り"
+        credit_account: "事業主借"
 
   outflow:
     credit_account: "普通預金"

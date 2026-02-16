@@ -139,6 +139,8 @@ class App(ctk.CTk):
             ],
         )
         if files:
+            # NOTE: 複数ファイル選択してもここで上書きされるだけなので、
+            # - 実質的には最後に選んだファイルのみが対象になる（仕様）
             self._selected_files = list(files)
             self._lbl_files.configure(text=f"{len(files)} ファイル選択済み")
             self._btn_convert.configure(state="normal")

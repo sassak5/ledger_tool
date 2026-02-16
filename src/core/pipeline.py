@@ -44,9 +44,11 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from src.core import detector, normalizer, validator
 from src.core import ledger_generator, exporter
+from src.core.ledger_generator import load_mapping_config
 from src.core.parsers import register_parsers
 from src.core.models import (
     DetectionError,
@@ -148,7 +150,9 @@ def run(
     all_errors.extend(val_errors)
 
     # --- Step 5: 仕訳候補生成 ---
-    drafts, ledger_errors = ledger_generator.generate(valid_txns)
+    mapping_yml = Path(rules_dir) / "ledger_mapping.yml"
+    mapping_cfg = load_mapping_config(mapping_yml)
+    drafts, ledger_errors = ledger_generator.generate(valid_txns, mapping_cfg)
     all_errors.extend(ledger_errors)
 
     # --- サマリ集計 ---
