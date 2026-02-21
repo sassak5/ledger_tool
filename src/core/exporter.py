@@ -40,7 +40,7 @@ def _ensure_dir(dir_path: Path) -> None:
 def _write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
     """CSVファイルを書き出す。エラーがあれば ExportError を投げる。"""
     try:
-        with open(path, "w", encoding="utf-8", newline="") as f:
+        with open(path, "w", encoding="utf-8-sig", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for row in rows:
@@ -138,7 +138,7 @@ def export_run_log(path: Path, summary: ProcessingSummary) -> None:
     ])
 
     try:
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8-sig") as f:
             f.write("\n".join(lines) + "\n")
     except OSError as e:
         raise ExportError(f"ログ書き込み失敗: {path} ({e})")
