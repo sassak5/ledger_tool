@@ -1,4 +1,10 @@
-"""エントリーポイント — GUI起動"""
+"""エントリーポイント — GUI起動
+
+起動時に以下を行う:
+1. プロジェクトルートを sys.path に追加
+2. データディレクトリ (src/data/) を初期化
+3. App を起動
+"""
 
 import logging
 import sys
@@ -9,6 +15,18 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
+logger = logging.getLogger(__name__)
+
+
+def _ensure_data_dir() -> None:
+    """データディレクトリ (src/data/) を作成する。
+
+    資金管理モジュールの SQLite DB ファイル (cash.db) がここに格納される。
+    """
+    data_dir = Path(__file__).parent / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    logger.info("データディレクトリ確認: %s", data_dir)
+
 
 def main() -> None:
     # `python src/main.py` や VS Code の「Python ファイルを実行」でも
@@ -16,6 +34,8 @@ def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
+
+    _ensure_data_dir()
 
     try:
         from src.gui.app import App

@@ -1,0 +1,84 @@
+version: 1
+kind: cash_config
+
+# ── プルダウン選択肢 ──────────────────────────
+channels:
+  sales:                              # 売上チャネル（販路）
+    - id: "amazon"
+      label: "Amazon"
+      default_payment_method: "amazon_pending"
+    - id: "rakuten"
+      label: "楽天"
+      default_payment_method: "rakuten_pending"
+    - id: "yahoo"
+      label: "Yahoo!ショッピング"
+      default_payment_method: "yahoo_pending"
+    - id: "own_ec"
+      label: "自社EC"
+      default_payment_method: "bank_transfer"
+    - id: "other_sales"
+      label: "その他"
+      default_payment_method: "bank_transfer"
+
+  purchase:                           # 仕入先
+    - id: "supplier_a"
+      label: "仕入先A"
+      default_payment_method: "credit_card"
+    - id: "supplier_b"
+      label: "仕入先B"
+      default_payment_method: "credit_card"
+    - id: "amazon_purchase"
+      label: "Amazon仕入"
+      default_payment_method: "credit_card"
+    - id: "other_purchase"
+      label: "その他"
+      default_payment_method: "credit_card"
+
+# ── 決済手段 ─────────────────────────────────
+payment_methods:
+  - id: "amazon_pending"
+    label: "Amazon保留（入金待ち）"
+    affects_account: "売掛金_Amazon"
+  - id: "rakuten_pending"
+    label: "楽天保留（入金待ち）"
+    affects_account: "売掛金_その他"
+  - id: "yahoo_pending"
+    label: "Yahoo保留（入金待ち）"
+    affects_account: "売掛金_その他"
+  - id: "credit_card"
+    label: "クレジットカード"
+    affects_account: "未払金_クレカ"
+  - id: "bank_transfer"
+    label: "銀行振込"
+    affects_account: "普通預金"
+  - id: "cash"
+    label: "現金"
+    affects_account: "現金"
+
+# ── 勘定科目 ─────────────────────────────────
+accounts:
+  - name: "普通預金"
+    type: "asset"
+    initial_balance: 0
+  - name: "売掛金_Amazon"
+    type: "asset"
+    initial_balance: 0
+  - name: "売掛金_その他"
+    type: "asset"
+    initial_balance: 0
+  - name: "未払金_クレカ"
+    type: "liability"
+    initial_balance: 0
+  - name: "在庫"
+    type: "asset"
+    initial_balance: 0
+  - name: "現金"
+    type: "asset"
+    initial_balance: 0
+
+# ── 突合設定 ─────────────────────────────────
+reconciliation:
+  threshold: 1000                     # 差額警告閾値（円）
+  auto_match_channel_map:             # 資金管理チャネル → 仕訳CSVの対応タグ
+    Amazon: ["amazon"]
+    楽天: ["rakuten"]
